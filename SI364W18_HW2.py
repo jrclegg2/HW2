@@ -11,10 +11,12 @@
 #############################
 ##### IMPORT STATEMENTS #####
 #############################
-from flask import Flask, request, render_template, url_for
-from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField, RadioField, ValidationError
+from flask import Flask, request, render_template, url_for, redirect, flash
+from flask_wtf import FlaskForm, Form
+from wtforms import StringField, SubmitField, RadioField
 from wtforms.validators import Required
+import requests
+import json
 
 #####################
 ##### APP SETUP #####
@@ -26,10 +28,10 @@ app.config['SECRET_KEY'] = 'hardtoguessstring'
 ####################
 ###### FORMS #######
 ####################
-
-
-
-
+class AlbumEntryForm(FlaskForm):
+    albumName = StringField("Enter the name of an album: ", validators=[Required()])
+    likeness = RadioField("How much do you like this album? (1 low, 3 high)", choices = [(1, '1'), (2, '2'), (3, '3')])
+    submit = SubmitField('Submit')
 ####################
 ###### ROUTES ######
 ####################
@@ -43,6 +45,45 @@ def hello_world():
 def hello_user(name):
     return '<h1>Hello {0}<h1>'.format(name)
 
+@app.route('/artistform')
+def artistform():
+    return render_template('artistform.html')
 
+@app.route('/artistinfo')
+def artistInfo():
+    requestURL = "https://itunes.apple.com/search"
+    artist = request.args.get('artist')
+    requestParams = {'term' : artist}
+    itunesSearch = json.loads(requests.get(requestURL, params = requestParams).text.encode('utf-8'))
+    return render_template('artist_info.html', objects = itunesSearch['results'])
+
+@app.route('/artistlinks')
+def artistlinks():
+    return render_template('artist_links.html')
+
+@app.route('/specific/song/<artist_name>')
+def specificSong(artist_name):
+    artistName = artist_name
+    requestURL = "https://itunes.apple.com/search"
+    artist = request.args.get('artist')
+    requestParams = {'term' : artistName}
+    itunesSearch = json.loads(requests.get(requestURL, params = requestParams).text.encode('utf-8'))
+    return render_template('specific_artist.html', results = itunesSearch['results'])
+
+@app.route('/album_entry')
+def album_entry():
+    simpleForm = AlbumEntryForm()
+    return render_template('album_entry.html', form = simpleForm)
+
+@app.route('/album_result', methods = ("GET", "POST"))
+def album_result():
+    form = AlbumEntryForm(request.form)
+    if (request.method == 'POST') and (len(form.albumName.data) > 0) and (form.likeness.data != 'None'):
+        albumName = form.albumName.data
+        likeness = form.likeness.data
+        return render_template('album_data.html', form = form)
+    else:
+        flash("All fields are required!")
+        return redirect(url_for('album_entry'))
 if __name__ == '__main__':
     app.run(use_reloader=True,debug=True)

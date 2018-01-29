@@ -1,0 +1,13 @@
+{% block content %}
+  <h1> Album Information </h1>
+  <form method = "POST" action = "/album_result">
+    {{ form.hidden_tag() }}
+    {{ form.csrf_token }}
+    {% for message in get_flashed_messages() %}
+    {{ message }}
+    {% endfor %}
+    <p> {{ form.albumName.label }} {{ form.albumName() }} </p>
+    <p> {{ form.likeness.label }} {{ form.likeness() }} </p>
+    {{ form.submit() }}
+  </form>
+{% endblock %}
